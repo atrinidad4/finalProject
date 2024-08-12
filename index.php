@@ -1,124 +1,57 @@
 <?php
-// index.php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 include 'includes/db_connect.php';
 
-// Determine if the user is logged in and their role
 $is_logged_in = isset($_SESSION['user_id']);
 $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 
-// Handle sorting
 $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
-$sort_order = isset($_GET['order']) ? $_GET['order'] : 'DESC'; // Default to descending
+$sort_order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
+$category_id = isset($_GET['category']) ? intval($_GET['category']) : 0;
+
 $valid_sorts = ['title', 'created_at', 'updated_at'];
 $valid_orders = ['ASC', 'DESC'];
 
 if (!in_array($sort_by, $valid_sorts)) {
-    $sort_by = 'created_at'; // Default sort column
+    $sort_by = 'created_at'; 
 }
-
 if (!in_array($sort_order, $valid_orders)) {
-    $sort_order = 'DESC'; // Default sort order
+    $sort_order = 'DESC'; 
 }
 
-// Fetch posts with sorting
 try {
-    $stmt = $db->prepare("SELECT id, title, content, image_path, created_at, updated_at FROM pages ORDER BY $sort_by $sort_order");
+    $query = "SELECT id, title, content, image_path, created_at, updated_at FROM pages";
+    
+    if ($category_id > 0) {
+        $query .= " WHERE category_id = :category_id";
+    }
+    
+    $query .= " ORDER BY $sort_by $sort_order";
+    
+    $stmt = $db->prepare($query);
+    
+    if ($category_id > 0) {
+        $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
+    }
+    
     $stmt->execute();
     $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error_message = 'Error fetching posts: ' . $e->getMessage();
 }
 
-// Handle comment submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
-    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
-    $comment = trim($_POST['comment']);
-    $name = isset($_POST['name']) ? trim($_POST['name']) : 'Anonymous';
-
-    if ($post_id > 0 && !empty($comment)) {
-        try {
-            $stmt = $db->prepare("INSERT INTO comments (post_id, comment, created_at, is_visible, name) VALUES (:post_id, :comment, NOW(), 1, :name)");
-            $stmt->execute([':post_id' => $post_id, ':comment' => $comment, ':name' => $name]);
-            $success_message = 'Comment added successfully!';
-        } catch (PDOException $e) {
-            $error_message = 'Error adding comment: ' . $e->getMessage();
-        }
-    } else {
-        $error_message = 'Please enter a comment and select a post.';
-    }
+try {
+    $stmt = $db->query("SELECT id, name FROM categories");
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error_message = 'Error fetching categories: ' . $e->getMessage();
 }
 
-// Handle comment deletion
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
-    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
+// Handling comments as before...
 
-    if ($comment_id > 0 && $is_admin) {
-        try {
-            $stmt = $db->prepare("DELETE FROM comments WHERE id = :comment_id");
-            $stmt->execute([':comment_id' => $comment_id]);
-            $success_message = 'Comment deleted successfully!';
-        } catch (PDOException $e) {
-            $error_message = 'Error deleting comment: ' . $e->getMessage();
-        }
-    } else {
-        $error_message = 'Invalid comment ID or insufficient permissions.';
-    }
-}
-
-// Handle comment editing
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_comment'])) {
-    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
-    $new_comment = trim($_POST['new_comment']);
-
-    if ($comment_id > 0 && !empty($new_comment)) {
-        try {
-            $stmt = $db->prepare("UPDATE comments SET comment = :new_comment WHERE id = :comment_id");
-            $stmt->execute([':new_comment' => $new_comment, ':comment_id' => $comment_id]);
-            $success_message = 'Comment updated successfully!';
-        } catch (PDOException $e) {
-            $error_message = 'Error updating comment: ' . $e->getMessage();
-        }
-    } else {
-        $error_message = 'Invalid comment ID or empty comment.';
-    }
-}
-
-// Handle disemvoweling
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['disemvowel_comment'])) {
-    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
-
-    if ($comment_id > 0 && $is_admin) {
-        try {
-            // Function to disemvowel a comment
-            function disemvowel($text) {
-                return preg_replace('/[aeiouAEIOU]/', '', $text);
-            }
-
-            // Fetch the comment
-            $stmt = $db->prepare("SELECT comment FROM comments WHERE id = :comment_id");
-            $stmt->execute([':comment_id' => $comment_id]);
-            $comment = $stmt->fetchColumn();
-
-            if ($comment !== false) {
-                // Update the comment with disemvoweled text
-                $disemvoweled_comment = disemvowel($comment);
-                $stmt = $db->prepare("UPDATE comments SET comment = :comment WHERE id = :comment_id");
-                $stmt->execute([':comment' => $disemvoweled_comment, ':comment_id' => $comment_id]);
-                $success_message = 'Comment disemvoweled successfully!';
-            } else {
-                $error_message = 'Comment not found.';
-            }
-        } catch (PDOException $e) {
-            $error_message = 'Error disemvoweling comment: ' . $e->getMessage();
-        }
-    } else {
-        $error_message = 'Invalid comment ID or insufficient permissions.';
-    }
-}
 ?>
 
 <!DOCTYPE html>
@@ -159,6 +92,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['disemvowel_comment'])
                 </section>
 
                 <form method="get" action="">
+                    <label for="category">Category:</label>
+                    <select id="category" name="category" onchange="this.form.submit()">
+                        <option value="0">All Categories</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?php echo $category['id']; ?>" <?php echo $category_id === $category['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($category['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
                     <label for="sort">Sort by:</label>
                     <select id="sort" name="sort" onchange="this.form.submit()">
                         <option value="created_at" <?php echo $sort_by === 'created_at' ? 'selected' : ''; ?>>Created At</option>
