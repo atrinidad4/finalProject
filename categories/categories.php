@@ -1,12 +1,10 @@
 <?php
-// categories.php
-
-require_once '../auth.php'; // Include authentication script
+require_once '../auth.php'; 
 include_once __DIR__ . '/includes/db_connect.php';
-// Check if user is logged in
+
 check_login();
 
-// Fetch all categories from the database
+
 $result = $db->query("SELECT * FROM categories ORDER BY category_name ASC");
 
 ?>

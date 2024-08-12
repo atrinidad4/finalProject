@@ -1,29 +1,26 @@
 <?php
 session_start();
-require_once '../includes/db_connect.php'; // Adjust path as needed
+require_once '../includes/db_connect.php';
 
-// Initialize error variable
 $error = '';
 
-// Sanitize and validate input
 $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 $password = filter_input(INPUT_POST, 'password', FILTER_SANITIZE_FULL_SPECIAL_CHARS);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $username && $password) {
     try {
-        // Prepare SQL query
+
         $stmt = $db->prepare('SELECT id, username, password, role FROM users WHERE username = :username');
         $stmt->execute(['username' => $username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
-            // Store user data in session
+
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['role']; // Store user role
-            $_SESSION['logged_in'] = true; // Mark user as logged in
+            $_SESSION['role'] = $user['role']; 
+            $_SESSION['logged_in'] = true;
 
-            // Redirect based on role
             if ($user['role'] === 'admin') {
                 header('Location: ../dashboard.php');
             } else {

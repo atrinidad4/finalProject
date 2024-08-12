@@ -1,13 +1,10 @@
 <?php
-// list_pages.php
 
-require_once '../auth.php'; // Include authentication script (if needed)
+require_once '../auth.php'; 
 include_once __DIR__ . '/includes/db_connect.php';
 
-// Check if user is logged in (if this is an authenticated page)
 check_login();
 
-// Get sorting criteria from query parameters (default to 'title')
 $sort_by = filter_input(INPUT_GET, 'sort_by', FILTER_SANITIZE_STRING) ?? 'title';
 $valid_sort_columns = ['title', 'created_at', 'updated_at'];
 
@@ -15,13 +12,11 @@ if (!in_array($sort_by, $valid_sort_columns)) {
     $sort_by = 'title';
 }
 
-// Prepare the SQL query with sorting
 $query = "SELECT pages.id, pages.title, pages.created_at, pages.updated_at, categories.name AS category_name
           FROM pages
           LEFT JOIN categories ON pages.category_id = categories.id
           ORDER BY pages.$sort_by";
 
-// Execute the query using PDO
 $stmt = $db->query($query);
 $pages = $stmt->fetchAll();
 ?>

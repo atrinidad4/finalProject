@@ -1,13 +1,10 @@
 <?php
-// moderate_comments.php
 
-require_once '../auth.php'; // Include authentication script
+require_once '../auth.php';
 include_once __DIR__ . '/includes/db_connect.php';
 
-// Check if user is an admin
 check_login();
 
-// Fetch all comments from the database using PDO
 $stmt = $db->query("SELECT * FROM comments");
 $comments = $stmt->fetchAll();
 

@@ -1,13 +1,9 @@
 <?php
-// categories.php
-
 include_once __DIR__ . '/includes/db_connect.php';
-require_once '../auth.php'; // Include authentication script
+require_once '../auth.php'; 
 
-// Check if user is logged in (if this is an authenticated page)
 check_login();
 
-// Handle category creation
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'create') {
     $category_name = filter_input(INPUT_POST, 'category_name', FILTER_SANITIZE_STRING);
 
@@ -26,7 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     }
 }
 
-// Handle category update
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'update') {
     $category_id = filter_input(INPUT_POST, 'category_id', FILTER_SANITIZE_NUMBER_INT);
     $category_name = filter_input(INPUT_POST, 'category_name', FILTER_SANITIZE_STRING);
@@ -47,7 +42,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['a
     }
 }
 
-// Handle category deletion
 if (isset($_GET['delete_id'])) {
     $category_id = filter_input(INPUT_GET, 'delete_id', FILTER_SANITIZE_NUMBER_INT);
 
@@ -64,7 +58,6 @@ if (isset($_GET['delete_id'])) {
     }
 }
 
-// Fetch all categories for display
 $query = "SELECT * FROM categories";
 $stmt = $db->query($query);
 $categories = $stmt->fetchAll();

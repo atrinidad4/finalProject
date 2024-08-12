@@ -1,14 +1,11 @@
 <?php
-// manage_pages.php
 
-require_once '../includes/auth.php'; // Include authentication script
+require_once '../includes/auth.php'; 
 include '../includes/db_connect.php';
 
-// Check if user is logged in
 check_login();
 
-// Fetch pages from the database using PDO
-$stmt = $db->query("SELECT * FROM pages ORDER BY title"); // Adjust sorting as needed
+$stmt = $db->query("SELECT * FROM pages ORDER BY title");
 $pages = $stmt->fetchAll();
 
 ?>
@@ -42,7 +39,7 @@ $pages = $stmt->fetchAll();
                     <td><?php echo htmlspecialchars($page['id']); ?></td>
                     <td><?php echo htmlspecialchars($page['title']); ?></td>
                     <td><?php 
-                        // Fetch category name
+
                         $category_stmt = $db->prepare("SELECT name FROM categories WHERE id = ?");
                         $category_stmt->execute([$page['category_id']]);
                         $category = $category_stmt->fetch();

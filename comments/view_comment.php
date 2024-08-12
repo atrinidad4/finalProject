@@ -1,16 +1,12 @@
 <?php
-// view_comments.php
-
 include_once __DIR__ . '/includes/db_connect.php';
 
-// Get post ID from URL
 $post_id = filter_input(INPUT_GET, 'post_id', FILTER_VALIDATE_INT);
 if (!$post_id) {
     header('Location: ../index.php?error=Invalid post ID');
     exit;
 }
 
-// Fetch comments for the specific post using PDO
 $stmt = $db->prepare("SELECT * FROM comments WHERE post_id = ? AND is_visible = 1 ORDER BY created_at DESC");
 $stmt->execute([$post_id]);
 $comments = $stmt->fetchAll();

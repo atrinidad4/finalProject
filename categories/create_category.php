@@ -1,19 +1,17 @@
 <?php
-// create_category.php
 
-require_once '../auth.php'; // Include authentication script
+require_once '../auth.php'; 
 include_once __DIR__ . '/includes/db_connect.php';
-// Check if user is logged in
+
 check_login();
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category_name = sanitize_input($_POST['category_name']);
     
     if (empty($category_name)) {
         $error = "Category name cannot be empty.";
     } else {
-        // Insert category into the database using PDO
+
         $stmt = $db->prepare("INSERT INTO categories (name) VALUES (?)");
         if ($stmt->execute([$category_name])) {
             header('Location: manage_categories.php?success=Category created successfully');

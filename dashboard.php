@@ -6,14 +6,11 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
     header('Location: login.php');
     exit();
 }
-
-// Initialize variables
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 $user_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $success_message = '';
 $error_message = '';
 
-// Handle user actions
 if ($action == 'delete' && $user_id > 0) {
     try {
         $stmt = $db->prepare('DELETE FROM users WHERE id = :id');
@@ -65,7 +62,6 @@ if ($action == 'delete' && $user_id > 0) {
     }
 }
 
-// Fetch all users
 try {
     $stmt = $db->query('SELECT id, username, role FROM users');
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -111,7 +107,6 @@ try {
 
         <?php if ($user_id > 0 && $action == 'update'): ?>
             <?php
-            // Fetch user data for editing
             try {
                 $stmt = $db->prepare('SELECT username, role FROM users WHERE id = :id');
                 $stmt->execute([':id' => $user_id]);

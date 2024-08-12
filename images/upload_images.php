@@ -11,9 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $target = '../uploads/' . $filename;
         move_uploaded_file($image['tmp_name'], $target);
 
-        // Resize the image
-        // (Resizing logic here)
-
         $stmt = $db->prepare("INSERT INTO images (page_id, filename) VALUES (?, ?)");
         $stmt->execute([$page_id, $filename]);
 

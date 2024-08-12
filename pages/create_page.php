@@ -1,16 +1,13 @@
 <?php
-require_once '../includes/auth.php'; // Include authentication script
-include '../includes/db_connect.php'; // Include database connection
+require_once '../includes/auth.php';
+include '../includes/db_connect.php'; 
 
-// Sanitize input data
 function sanitize_input($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
-// Check if user is logged in
 check_login();
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = sanitize_input($_POST['title']);
     $content = sanitize_input($_POST['content']);
@@ -19,11 +16,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $imagePath = null;
 
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        // Move uploaded file to the `images` directory
-        $uploadDir = '../images/'; // Path relative to the script
+        $uploadDir = '../images/'; 
         $uploadFile = $uploadDir . basename($_FILES['image']['name']);
         
-        $directory = '../images/'; // Replace with your directory path
+        $directory = '../images/'; 
         $targetWidth = 300;
         $targetHeight = 300;
         
@@ -34,10 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($title) || empty($content)) {
         $error = "Title and content cannot be empty.";
     } elseif (isset($error)) {
-        // Error from image upload
+
         $error = "Error: $error";
     } else {
-        // Insert page into the database using PDO
+
         $stmt = $db->prepare("INSERT INTO pages (title, content, category_id, image_path, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())");
         if ($stmt->execute([$title, $content, $category_id, $imagePath])) {
             header('Location: manage_pages.php?success=Page created successfully');
@@ -47,8 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
-
-// Fetch categories for the dropdown
 $categories_stmt = $db->query("SELECT * FROM categories");
 $categories = $categories_stmt->fetchAll();
 ?>

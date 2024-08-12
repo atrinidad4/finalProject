@@ -1,15 +1,12 @@
 <?php
 session_start();
-require_once '../includes/db_connect.php'; // Adjust path as needed
+require_once '../includes/db_connect.php'; 
 
-// Function to sanitize user input
 function sanitize_input($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
 }
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Retrieve and sanitize form inputs
     $username = isset($_POST['username']) ? sanitize_input($_POST['username']) : '';
     $email = isset($_POST['email']) ? sanitize_input($_POST['email']) : '';
     $password = isset($_POST['password']) ? sanitize_input($_POST['password']) : '';
@@ -17,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $error = '';
 
-    // Validation
+
     if (empty($username) || empty($email) || empty($password) || empty($confirm_password)) {
         $error = 'All fields are required';
     } elseif ($password !== $confirm_password) {
@@ -25,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Invalid email format';
     } else {
-        // Check if username already exists
+
         $stmt = $db->prepare('SELECT COUNT(*) FROM users WHERE username = ?');
         $stmt->execute([$username]);
         $user_exists = $stmt->fetchColumn();
@@ -33,10 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($user_exists) {
             $error = 'Username already exists';
         } else {
-            // Hash the password
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-            // Insert new user into database
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $db->prepare('INSERT INTO users (username, email, password) VALUES (?, ?, ?)');
             try {
                 $stmt->execute([$username, $email, $hashed_password]);

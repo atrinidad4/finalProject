@@ -84,6 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
     <main>
         <section class="intro">
             <h1>Minecraft Block Database</h1>
+
+                <form action="search.php" method="GET" class="search-form">
+                <input type="text" name="query" placeholder="Search for [pages]..." required>
+                <button type="submit">Search</button>
+            </form>
         </section>
 
         <section class="posts">
@@ -102,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
                     <a href="pages/create_page.php" class="button">Create New Post</a>
                 </section>
 
-                <!-- Sorting Options -->
                 <form method="get" action="">
                     <label for="sort">Sort by:</label>
                     <select id="sort" name="sort" onchange="this.form.submit()">
@@ -139,7 +143,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
                             </div>
                         <?php endif; ?>
 
-                        <!-- Comment Form -->
                         <form action="index.php" method="post" class="comment-form">
                             <input type="hidden" name="post_id" value="<?php echo htmlspecialchars($post['id']); ?>">
                             <textarea name="comment" rows="4" placeholder="Leave a comment..." required></textarea>
@@ -149,7 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
                             <button type="submit">Submit Comment</button>
                         </form>
 
-                        <!-- Display Comments -->
                         <?php
                         try {
                             $stmt = $db->prepare("SELECT id, comment, created_at FROM comments WHERE post_id = :post_id AND is_visible = 1 ORDER BY created_at DESC");

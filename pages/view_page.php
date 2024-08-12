@@ -1,42 +1,56 @@
 <?php
-require '../includes/auth.php';
-include_once __DIR__ . '/includes/db_connect.php';
 
-$page_id = (int)$_GET['id'];
-$page = $db->query("SELECT * FROM pages WHERE id = $page_id")->fetch_assoc();
-$comments = $db->query("SELECT * FROM comments WHERE page_id = $page_id AND is_visible = 1 ORDER BY created_at DESC")->fetch_all(MYSQLI_ASSOC);
+include_once '../includes/db_connect.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $comment = trim($_POST['comment']);
-    $user_id = is_logged_in() ? $_SESSION['user_id'] : null;
-    $stmt = $db->prepare("INSERT INTO comments (page_id, user_id, comment, is_visible) VALUES (?, ?, ?, 1)");
-    $stmt->bind_param("iis", $page_id, $user_id, $comment);
-    $stmt->execute();
-
-    header("Location: view_page.php?id=$page_id");
-    exit();
+if (!$db) {
+    die('Database connection failed.');
 }
 
-include '../includes/header.php';
+$page_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($page_id > 0) {
+    try {
+        $stmt = $db->prepare("SELECT title, content, image_path, created_at, updated_at FROM pages WHERE id = :id");
+        $stmt->execute([':id' => $page_id]);
+        $page = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$page) {
+            echo 'Page not found.';
+            exit;
+        }
+    } catch (PDOException $e) {
+        echo 'Error fetching page: ' . $e->getMessage();
+        exit;
+    }
+} else {
+    echo 'Invalid page ID.';
+    exit;
+}
 ?>
 
-<h1><?= htmlspecialchars($page['title']) ?></h1>
-<p><?= nl2br(htmlspecialchars($page['content'])) ?></p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($page['title']); ?></title>
+    <link rel="stylesheet" href="styles.css"> 
+</head>
+<body>
+    <?php include '../includes/header.php'; ?>
 
-<?php if ($page['image_path']): ?>
-    <img src="<?= $page['image_path'] ?>" alt="Page Image" style="max-width: 400px;">
-<?php endif; ?>
+    <main>
+        <article>
+            <h1><?php echo htmlspecialchars($page['title']); ?></h1>
+            <p><?php echo htmlspecialchars($page['content']); ?></p>
+            <?php if (!empty($page['image_path'])): ?>
+                <img src="<?php echo htmlspecialchars($page['image_path']); ?>" alt="Image for <?php echo htmlspecialchars($page['title']); ?>" style="max-width: 100%; height: auto;">
+            <?php endif; ?>
+            <p>Created on: <?php echo htmlspecialchars($page['created_at']); ?></p>
+            <p>Updated on: <?php echo htmlspecialchars($page['updated_at']); ?></p>
+        </article>
+    </main>
 
-<h2>Comments</h2>
-<form method="POST">
-    <textarea name="comment" placeholder="Add a comment" required></textarea>
-    <button type="submit">Submit Comment</button>
-</form>
-
-<ul>
-    <?php foreach ($comments as $comment): ?>
-        <li><?= htmlspecialchars($comment['comment']) ?> - <?= $comment['created_at'] ?></li>
-    <?php endforeach; ?>
-</ul>
-
-<?php include '../includes/footer.php'; ?>
+    <?php include '../includes/footer.php'; ?>
+</body>
+</html>

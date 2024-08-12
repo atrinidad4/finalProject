@@ -1,27 +1,21 @@
 <?php
-// edit_category.php
-
-require_once '../auth.php'; // Include authentication script
+require_once '../auth.php'; 
 include_once __DIR__ . '/includes/db_connect.php';
 
-// Check if user is logged in
 check_login();
 
-// Get category ID from URL
 $category_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 if (!$category_id) {
     header('Location: manage_categories.php?error=Invalid category ID');
     exit;
 }
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category_name = sanitize_input($_POST['category_name']);
     
     if (empty($category_name)) {
         $error = "Category name cannot be empty.";
     } else {
-        // Update category in the database using PDO
         $stmt = $db->prepare("UPDATE categories SET name = ? WHERE id = ?");
         if ($stmt->execute([$category_name, $category_id])) {
             header('Location: manage_categories.php?success=Category updated successfully');
@@ -32,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch category details from the database
 $stmt = $db->prepare("SELECT * FROM categories WHERE id = ?");
 $stmt->execute([$category_id]);
 $category = $stmt->fetch();

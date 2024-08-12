@@ -3,7 +3,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Determine if the user is logged in and if they are an admin
 $is_logged_in = isset($_SESSION['user_id']);
 $is_admin = $is_logged_in && (isset($_SESSION['role']) && $_SESSION['role'] === 'admin');
 ?>
@@ -14,7 +13,7 @@ $is_admin = $is_logged_in && (isset($_SESSION['role']) && $_SESSION['role'] === 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft Blocks CMS</title>
-    <link rel="stylesheet" href="../path/to/your/styles.css"> <!-- Include your CSS file -->
+    <link rel="stylesheet" href="../styles.css"> 
 </head>
 <body>
     <header>
