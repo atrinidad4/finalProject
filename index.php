@@ -8,48 +8,132 @@ include 'includes/db_connect.php';
 $is_logged_in = isset($_SESSION['user_id']);
 $is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 
-$sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
-$sort_order = isset($_GET['order']) ? $_GET['order'] : 'DESC';
-$category_id = isset($_GET['category']) ? intval($_GET['category']) : 0;
-
-$valid_sorts = ['title', 'created_at', 'updated_at'];
-$valid_orders = ['ASC', 'DESC'];
-
-if (!in_array($sort_by, $valid_sorts)) {
-    $sort_by = 'created_at'; 
-}
-if (!in_array($sort_order, $valid_orders)) {
-    $sort_order = 'DESC'; 
-}
-
 try {
-    $query = "SELECT id, title, content, image_path, created_at, updated_at FROM pages";
-    
-    if ($category_id > 0) {
-        $query .= " WHERE category_id = :category_id";
-    }
-    
-    $query .= " ORDER BY $sort_by $sort_order";
-    
-    $stmt = $db->prepare($query);
-    
-    if ($category_id > 0) {
-        $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
-    }
-    
+    $stmt = $db->prepare("SELECT id, name FROM categories ORDER BY name");
     $stmt->execute();
-    $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $error_message = 'Error fetching posts: ' . $e->getMessage();
-}
-
-try {
-    $stmt = $db->query("SELECT id, name FROM categories");
     $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error_message = 'Error fetching categories: ' . $e->getMessage();
 }
 
+$category_id = isset($_GET['category']) ? intval($_GET['category']) : 0;
+
+$sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'created_at';
+$sort_order = isset($_GET['order']) ? $_GET['order'] : 'DESC'; 
+$valid_sorts = ['title', 'created_at', 'updated_at'];
+$valid_orders = ['ASC', 'DESC'];
+
+if (!in_array($sort_by, $valid_sorts)) {
+    $sort_by = 'created_at';
+}
+
+if (!in_array($sort_order, $valid_orders)) {
+    $sort_order = 'DESC';
+}
+
+
+try {
+    $sql = "SELECT p.id, p.title, p.content, p.image_path, p.created_at, p.updated_at 
+            FROM pages p
+            LEFT JOIN categories c ON p.category_id = c.id
+            WHERE (:category_id = 0 OR p.category_id = :category_id)
+            ORDER BY $sort_by $sort_order";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([':category_id' => $category_id]);
+    $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $error_message = 'Error fetching posts: ' . $e->getMessage();
+}
+
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
+    $post_id = isset($_POST['post_id']) ? intval($_POST['post_id']) : 0;
+    $comment = trim($_POST['comment']);
+    $name = isset($_POST['name']) ? trim($_POST['name']) : 'Anonymous'; 
+
+    if ($post_id > 0 && !empty($comment)) {
+        try {
+            $stmt = $db->prepare("INSERT INTO comments (post_id, comment, created_at, is_visible) VALUES (:post_id, :comment, NOW(), 1)");
+            $stmt->execute([':post_id' => $post_id, ':comment' => $comment]);
+
+            $_SESSION['temp_comment_data'] = [
+                'post_id' => $post_id,
+                'comment' => $comment,
+                'name' => $name
+            ];
+
+            $success_message = 'Comment added successfully!';
+        } catch (PDOException $e) {
+            $error_message = 'Error adding comment: ' . $e->getMessage();
+        }
+    } else {
+        $error_message = 'Please enter a comment and select a post.';
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
+    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
+
+    if ($comment_id > 0 && $is_admin) {
+        try {
+            $stmt = $db->prepare("DELETE FROM comments WHERE id = :comment_id");
+            $stmt->execute([':comment_id' => $comment_id]);
+            $success_message = 'Comment deleted successfully!';
+        } catch (PDOException $e) {
+            $error_message = 'Error deleting comment: ' . $e->getMessage();
+        }
+    } else {
+        $error_message = 'Invalid comment ID or insufficient permissions.';
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_comment'])) {
+    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
+    $new_comment = trim($_POST['new_comment']);
+
+    if ($comment_id > 0 && !empty($new_comment)) {
+        try {
+            $stmt = $db->prepare("UPDATE comments SET comment = :new_comment WHERE id = :comment_id");
+            $stmt->execute([':new_comment' => $new_comment, ':comment_id' => $comment_id]);
+            $success_message = 'Comment updated successfully!';
+        } catch (PDOException $e) {
+            $error_message = 'Error updating comment: ' . $e->getMessage();
+        }
+    } else {
+        $error_message = 'Invalid comment ID or empty comment.';
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['disemvowel_comment'])) {
+    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
+
+    if ($comment_id > 0 && $is_admin) {
+        try {
+
+            function disemvowel($text) {
+                return preg_replace('/[aeiouAEIOU]/', '', $text);
+            }
+
+            $stmt = $db->prepare("SELECT comment FROM comments WHERE id = :comment_id");
+            $stmt->execute([':comment_id' => $comment_id]);
+            $comment = $stmt->fetchColumn();
+
+            if ($comment !== false) {
+
+                $disemvoweled_comment = disemvowel($comment);
+                $stmt = $db->prepare("UPDATE comments SET comment = :comment WHERE id = :comment_id");
+                $stmt->execute([':comment' => $disemvoweled_comment, ':comment_id' => $comment_id]);
+                $success_message = 'Comment disemvoweled successfully!';
+            } else {
+                $error_message = 'Comment not found.';
+            }
+        } catch (PDOException $e) {
+            $error_message = 'Error disemvoweling comment: ' . $e->getMessage();
+        }
+    } else {
+        $error_message = 'Invalid comment ID or insufficient permissions.';
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -66,6 +150,23 @@ try {
     <main>
         <section class="intro">
             <h1>Minecraft Block Database</h1>
+
+            <section class="categories-list">
+                <h2>Categories</h2>
+                <?php if (isset($error_message)): ?>
+                    <p class="error"><?php echo htmlspecialchars($error_message); ?></p>
+                <?php endif; ?>
+
+                <ul>
+                    <?php foreach ($categories as $category): ?>
+                        <li>
+                            <a href="index.php?category=<?php echo htmlspecialchars($category['id']); ?>">
+                                <?php echo htmlspecialchars($category['name']); ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </section>
 
             <form action="search.php" method="GET" class="search-form">
                 <input type="text" name="query" placeholder="Search for [pages]..." required>
@@ -88,32 +189,33 @@ try {
                 <section class="create-post">
                     <a href="pages/create_page.php" class="button">Create New Post</a>
                 </section>
-
-                <form method="get" action="">
-                    <label for="category">Category:</label>
-                    <select id="category" name="category" onchange="this.form.submit()">
-                        <option value="0">All Categories</option>
-                        <?php foreach ($categories as $category): ?>
-                            <option value="<?php echo $category['id']; ?>" <?php echo $category_id === $category['id'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($category['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <label for="sort">Sort by:</label>
-                    <select id="sort" name="sort" onchange="this.form.submit()">
-                        <option value="created_at" <?php echo $sort_by === 'created_at' ? 'selected' : ''; ?>>Created At</option>
-                        <option value="updated_at" <?php echo $sort_by === 'updated_at' ? 'selected' : ''; ?>>Updated At</option>
-                        <option value="title" <?php echo $sort_by === 'title' ? 'selected' : ''; ?>>Title</option>
-                    </select>
-
-                    <label for="order">Order:</label>
-                    <select id="order" name="order" onchange="this.form.submit()">
-                        <option value="ASC" <?php echo $sort_order === 'ASC' ? 'selected' : ''; ?>>Ascending</option>
-                        <option value="DESC" <?php echo $sort_order === 'DESC' ? 'selected' : ''; ?>>Descending</option>
-                    </select>
-                </form>
             <?php endif; ?>
+
+            <form method="get" action="">
+    <label for="category">Category:</label>
+    <select id="category" name="category" onchange="this.form.submit()">
+        <option value="0">All Categories</option>
+        <?php foreach ($categories as $category): ?>
+            <option value="<?php echo htmlspecialchars($category['id']); ?>" 
+                <?php echo $category_id === $category['id'] ? 'selected' : ''; ?>>
+                <?php echo htmlspecialchars($category['name']); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+
+    <label for="sort">Sort by:</label>
+    <select id="sort" name="sort" onchange="this.form.submit()">
+        <option value="created_at" <?php echo $sort_by === 'created_at' ? 'selected' : ''; ?>>Created At</option>
+        <option value="updated_at" <?php echo $sort_by === 'updated_at' ? 'selected' : ''; ?>>Updated At</option>
+        <option value="title" <?php echo $sort_by === 'title' ? 'selected' : ''; ?>>Title</option>
+    </select>
+
+    <label for="order">Order:</label>
+    <select id="order" name="order" onchange="this.form.submit()">
+        <option value="ASC" <?php echo $sort_order === 'ASC' ? 'selected' : ''; ?>>Ascending</option>
+        <option value="DESC" <?php echo $sort_order === 'DESC' ? 'selected' : ''; ?>>Descending</option>
+    </select>
+</form>
 
             <?php if ($posts): ?>
                 <?php foreach ($posts as $post): ?>

@@ -1,7 +1,7 @@
 <?php
 
 require_once '../auth.php';
-include_once __DIR__ . '/includes/db_connect.php';
+include_once __DIR__ . '../includes/db_connect.php';
 
 check_login();
 
@@ -10,20 +10,18 @@ if ($_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+if (isset($_GET['id'])) {
+    $comment_id = intval($_GET['id']);
 
-if ($id) {
     try {
-        $stmt = $db->prepare("DELETE FROM comments WHERE id = ?");
-        if ($stmt->execute([$id])) {
-            header('Location: moderate_comments.php?success=Comment deleted successfully');
-        } else {
-            header('Location: moderate_comments.php?error=Failed to delete comment');
-        }
+        $stmt = $db->prepare("DELETE FROM comments WHERE id = :id");
+        $stmt->execute([':id' => $comment_id]);
+        header('Location: moderate_comment.php?success=Comment deleted successfully');
     } catch (PDOException $e) {
-        header('Location: moderate_comments.php?error=Database error: ' . $e->getMessage());
+        header('Location: moderate_comment.php?error=Error deleting comment: ' . $e->getMessage());
     }
 } else {
-    header('Location: moderate_comments.php?error=Invalid comment ID');
+    header('Location: moderate_comment.php?error=No comment ID specified');
 }
+
 ?>

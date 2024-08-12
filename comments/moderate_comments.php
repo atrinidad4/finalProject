@@ -49,6 +49,7 @@ $comments = $stmt->fetchAll();
                     <td><?php echo $comment['is_visible'] ? 'Yes' : 'No'; ?></td>
                     <td>
                         <a href="toggle_visibility.php?id=<?php echo htmlspecialchars($comment['id']); ?>">Toggle Visibility</a>
+                        <a href="edit_comment.php?id=<?php echo htmlspecialchars($comment['id']); ?>">Edit</a>
                         <a href="delete_comment.php?id=<?php echo htmlspecialchars($comment['id']); ?>" onclick="return confirm('Are you sure you want to delete this comment?');">Delete</a>
                         <a href="disemvowel_comment.php?id=<?php echo htmlspecialchars($comment['id']); ?>">Disemvowel</a>
                     </td>

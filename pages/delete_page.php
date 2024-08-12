@@ -1,19 +1,30 @@
 <?php
 
-require_once '../auth.php'; 
-include_once __DIR__ . '/includes/db_connect.php';
-
-check_login();
-$page_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-if (!$page_id) {
-    header('Location: manage_pages.php?error=Invalid page ID');
-    exit;
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-$stmt = $db->prepare("DELETE FROM pages WHERE id = ?");
-if ($stmt->execute([$page_id])) {
-    header('Location: manage_pages.php?success=Page deleted successfully');
+include '../includes/db_connect.php'; 
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    die('Access denied.');
+}
+
+if (isset($_GET['id'])) {
+    $id = intval($_GET['id']);
+
+    if ($id > 0) {
+        try {
+            $stmt = $db->prepare("DELETE FROM pages WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+
+            header('Location: ../index.php'); 
+            exit;
+        } catch (PDOException $e) {
+            echo 'Error deleting page: ' . $e->getMessage();
+        }
+    } else {
+        echo 'Invalid page ID.';
+    }
 } else {
-    header('Location: manage_pages.php?error=Failed to delete page');
+    echo 'No page ID provided.';
 }
-?>

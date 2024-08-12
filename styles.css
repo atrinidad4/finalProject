@@ -54,8 +54,28 @@ main {
     margin: 20px auto;
     padding: 20px;
     background-color: #c7e9ce !important;
-    box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.1);/* Remove bullets from categories list */
 }
+    .categories-list ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0; 
+    }
+    
+    .categories-list li {
+        margin-bottom: 10px; 
+    }
+    
+    .categories-list a {
+        text-decoration: none; 
+        color: #000; 
+        font-weight: bold;
+    }
+    
+    .categories-list a:hover {
+        text-decoration: underline; 
+    }
+    
 
 .intro {
     text-align: center;
