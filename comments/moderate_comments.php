@@ -5,6 +5,11 @@ include_once __DIR__ . '/includes/db_connect.php';
 
 check_login();
 
+if ($_SESSION['user_role'] !== 'admin') {
+    header('Location: ../index.php');
+    exit;
+}
+
 $stmt = $db->query("SELECT * FROM comments");
 $comments = $stmt->fetchAll();
 
@@ -45,6 +50,7 @@ $comments = $stmt->fetchAll();
                     <td>
                         <a href="toggle_visibility.php?id=<?php echo htmlspecialchars($comment['id']); ?>">Toggle Visibility</a>
                         <a href="delete_comment.php?id=<?php echo htmlspecialchars($comment['id']); ?>" onclick="return confirm('Are you sure you want to delete this comment?');">Delete</a>
+                        <a href="disemvowel_comment.php?id=<?php echo htmlspecialchars($comment['id']); ?>">Disemvowel</a>
                     </td>
                 </tr>
             <?php endforeach; ?>

@@ -41,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['comment'])) {
 
     if ($post_id > 0 && !empty($comment)) {
         try {
-            $stmt = $db->prepare("INSERT INTO comments (post_id, comment, created_at, is_visible) VALUES (:post_id, :comment, NOW(), 1)");
-            $stmt->execute([':post_id' => $post_id, ':comment' => $comment]);
+            $stmt = $db->prepare("INSERT INTO comments (post_id, comment, created_at, is_visible, name) VALUES (:post_id, :comment, NOW(), 1, :name)");
+            $stmt->execute([':post_id' => $post_id, ':comment' => $comment, ':name' => $name]);
             $success_message = 'Comment added successfully!';
         } catch (PDOException $e) {
             $error_message = 'Error adding comment: ' . $e->getMessage();
@@ -68,6 +68,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
         $error_message = 'Invalid comment ID or insufficient permissions.';
     }
 }
+
+// Handle comment editing
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_comment'])) {
+    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
+    $new_comment = trim($_POST['new_comment']);
+
+    if ($comment_id > 0 && !empty($new_comment)) {
+        try {
+            $stmt = $db->prepare("UPDATE comments SET comment = :new_comment WHERE id = :comment_id");
+            $stmt->execute([':new_comment' => $new_comment, ':comment_id' => $comment_id]);
+            $success_message = 'Comment updated successfully!';
+        } catch (PDOException $e) {
+            $error_message = 'Error updating comment: ' . $e->getMessage();
+        }
+    } else {
+        $error_message = 'Invalid comment ID or empty comment.';
+    }
+}
+
+// Handle disemvoweling
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['disemvowel_comment'])) {
+    $comment_id = isset($_POST['comment_id']) ? intval($_POST['comment_id']) : 0;
+
+    if ($comment_id > 0 && $is_admin) {
+        try {
+            // Function to disemvowel a comment
+            function disemvowel($text) {
+                return preg_replace('/[aeiouAEIOU]/', '', $text);
+            }
+
+            // Fetch the comment
+            $stmt = $db->prepare("SELECT comment FROM comments WHERE id = :comment_id");
+            $stmt->execute([':comment_id' => $comment_id]);
+            $comment = $stmt->fetchColumn();
+
+            if ($comment !== false) {
+                // Update the comment with disemvoweled text
+                $disemvoweled_comment = disemvowel($comment);
+                $stmt = $db->prepare("UPDATE comments SET comment = :comment WHERE id = :comment_id");
+                $stmt->execute([':comment' => $disemvoweled_comment, ':comment_id' => $comment_id]);
+                $success_message = 'Comment disemvoweled successfully!';
+            } else {
+                $error_message = 'Comment not found.';
+            }
+        } catch (PDOException $e) {
+            $error_message = 'Error disemvoweling comment: ' . $e->getMessage();
+        }
+    } else {
+        $error_message = 'Invalid comment ID or insufficient permissions.';
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -85,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
         <section class="intro">
             <h1>Minecraft Block Database</h1>
 
-                <form action="search.php" method="GET" class="search-form">
+            <form action="search.php" method="GET" class="search-form">
                 <input type="text" name="query" placeholder="Search for [pages]..." required>
                 <button type="submit">Search</button>
             </form>
@@ -175,6 +226,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_comment'])) {
                                                     <input type="hidden" name="comment_id" value="<?php echo $comment['id']; ?>">
                                                     <input type="hidden" name="delete_comment" value="1">
                                                     <button type="submit" onclick="return confirm('Are you sure you want to delete this comment?');">Delete</button>
+                                                </form>
+                                                <form action="index.php" method="post" style="display:inline;">
+                                                    <input type="hidden" name="comment_id" value="<?php echo $comment['id']; ?>">
+                                                    <input type="text" name="new_comment" placeholder="Edit comment">
+                                                    <input type="hidden" name="edit_comment" value="1">
+                                                    <button type="submit">Edit</button>
+                                                </form>
+                                                <form action="index.php" method="post" style="display:inline;">
+                                                    <input type="hidden" name="comment_id" value="<?php echo $comment['id']; ?>">
+                                                    <input type="hidden" name="disemvowel_comment" value="1">
+                                                    <button type="submit">Disemvowel</button>
                                                 </form>
                                             <?php endif; ?>
                                         </li>

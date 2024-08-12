@@ -1,28 +1,29 @@
 <?php
-require_once '../auth.php'; 
+
+require_once '../auth.php';
 include_once __DIR__ . '/includes/db_connect.php';
 
 check_login();
 
-$comment_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-if (!$comment_id) {
-    header('Location: moderate_comments.php?error=Invalid comment ID');
+if ($_SESSION['user_role'] !== 'admin') {
+    header('Location: ../index.php');
     exit;
 }
 
-$stmt = $db->prepare("SELECT is_visible FROM comments WHERE id = ?");
-$stmt->execute([$comment_id]);
-$comment = $stmt->fetch();
+$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-if ($comment) {
-    $new_visibility = $comment['is_visible'] ? 0 : 1;
-    $stmt = $db->prepare("UPDATE comments SET is_visible = ? WHERE id = ?");
-    if ($stmt->execute([$new_visibility, $comment_id])) {
-        header('Location: moderate_comments.php?success=Comment visibility updated');
-    } else {
-        header('Location: moderate_comments.php?error=Failed to update comment visibility');
+if ($id) {
+    try {
+        $stmt = $db->prepare("UPDATE comments SET is_visible = NOT is_visible WHERE id = ?");
+        if ($stmt->execute([$id])) {
+            header('Location: moderate_comments.php?success=Visibility toggled successfully');
+        } else {
+            header('Location: moderate_comments.php?error=Failed to toggle visibility');
+        }
+    } catch (PDOException $e) {
+        header('Location: moderate_comments.php?error=Database error: ' . $e->getMessage());
     }
 } else {
-    header('Location: moderate_comments.php?error=Comment not found');
+    header('Location: moderate_comments.php?error=Invalid comment ID');
 }
 ?>

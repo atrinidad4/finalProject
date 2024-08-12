@@ -1,7 +1,6 @@
 <?php
 require_once '../includes/auth.php'; 
 include '../includes/db_connect.php';
-include '../includes/image_functions.php';
 
 function sanitize_input($data) {
     return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');

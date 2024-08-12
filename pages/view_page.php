@@ -1,10 +1,18 @@
 <?php
+// view_page.php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 include_once '../includes/db_connect.php';
 
 if (!$db) {
     die('Database connection failed.');
 }
+
+$is_logged_in = isset($_SESSION['user_id']);
+$is_admin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 
 $page_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -38,6 +46,20 @@ if ($page_id > 0) {
 </head>
 <body>
     <?php include '../includes/header.php'; ?>
+
+    <nav>
+        <ul>
+            <?php if ($is_logged_in): ?>
+                <?php if ($is_admin): ?>
+                    <li><a href="../dashboard.php">Dashboard</a></li>
+                <?php endif; ?>
+                <li><a href="../auth/logout.php">Sign Out</a></li>
+            <?php else: ?>
+                <li><a href="../auth//login.php">Login</a></li>
+                <li><a href="..auth/register.php">Register</a></li>
+            <?php endif; ?>
+        </ul>
+    </nav>
 
     <main>
         <article>
