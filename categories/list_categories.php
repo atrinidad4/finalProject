@@ -5,15 +5,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Initialize category variable
 $category_id = isset($_GET['category_id']) ? intval($_GET['category_id']) : 0;
 
 try {
-    // Fetch all categories
     $stmt = $db->query("SELECT id, name FROM categories ORDER BY name ASC");
     $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Fetch posts for the selected category, if a valid category is selected
     if ($category_id > 0) {
         $stmt = $db->prepare("SELECT p.id, p.title, p.content, p.image_path, p.created_at, p.updated_at
                               FROM pages p
@@ -22,7 +19,6 @@ try {
         $stmt->execute([':category_id' => $category_id]);
         $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } else {
-        // If no category is selected, set posts to an empty array
         $posts = [];
     }
 } catch (PDOException $e) {
@@ -44,7 +40,6 @@ try {
     <main>
         <h1>Category List</h1>
         
-        <!-- Category Selection -->
         <form action="list_categories.php" method="get">
             <label for="category">Select Category:</label>
             <select id="category" name="category_id" onchange="this.form.submit()">
@@ -58,7 +53,6 @@ try {
             </select>
         </form>
 
-        <!-- Display Posts for the Selected Category -->
         <?php if ($category_id > 0): ?>
             <?php if (!empty($posts)): ?>
                 <h2>Posts in <?php echo htmlspecialchars($categories[array_search($category_id, array_column($categories, 'id'))]['name']); ?></h2>

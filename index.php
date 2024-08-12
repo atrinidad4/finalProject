@@ -50,8 +50,6 @@ try {
     $error_message = 'Error fetching categories: ' . $e->getMessage();
 }
 
-// Handling comments as before...
-
 ?>
 
 <!DOCTYPE html>
